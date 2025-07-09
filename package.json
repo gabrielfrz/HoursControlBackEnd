@@ -1,0 +1,24 @@
+{
+  "name": "hourscontrolbackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+  "start": "dotenv -e .env node index.js",
+  "dev": "dotenv -e .env nodemon index.js"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.1.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0"
+  }
+}
