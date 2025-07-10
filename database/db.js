@@ -10,8 +10,10 @@ export const pool = new Pool({
 
 export const connectDB = async () => {
   try {
-    await pool.connect();
+    
+    const client = await pool.connect();
     console.log('Conectado ao PostgreSQL via Neon!');
+    client.release(); 
   } catch (error) {
     console.error('Erro ao conectar ao DB:', error);
     process.exit(1);
