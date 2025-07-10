@@ -9,7 +9,7 @@ import { connectDB } from './database/db.js';
 
 const app = express();
 
-// 
+// Lista de origens permitidas
 const allowedOrigins = [
   'https://hours-control-front-end.vercel.app',
   'https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev'
@@ -26,21 +26,24 @@ const corsOptions = {
   credentials: true,
 };
 
-// Usa CORS com as opções corretas
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
+// Conecta ao banco
 connectDB();
 
+// Rotas
 app.use('/api/users', userRoutes);
 app.use('/api/points', pointRoutes);
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+// Só roda localmente se não for produção
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+  });
+}
 
 export default app;
