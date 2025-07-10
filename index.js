@@ -9,7 +9,6 @@ import { connectDB } from './database/db.js';
 
 const app = express();
 
-// ⚠️ Configuração correta do CORS
 const allowedOrigins = [
   'https://hours-control-front-end.vercel.app',
   'https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev'
@@ -38,5 +37,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
-
-export default app;
