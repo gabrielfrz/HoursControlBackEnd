@@ -9,6 +9,7 @@ import { connectDB } from './database/db.js';
 
 const app = express();
 
+// 
 const allowedOrigins = [
   'https://hours-control-front-end.vercel.app',
   'https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev'
@@ -25,9 +26,8 @@ const corsOptions = {
   credentials: true,
 };
 
+// Usa CORS com as opções corretas
 app.use(cors(corsOptions));
-
-
 app.options('*', cors(corsOptions));
 
 app.use(express.json());
