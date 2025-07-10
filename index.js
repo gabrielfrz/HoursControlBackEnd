@@ -9,16 +9,21 @@ import { connectDB } from './database/db.js';
 
 const app = express();
 
-// Configuração CORS correta
+// ⚠️ Configuração correta do CORS
 const allowedOrigins = [
   'https://hours-control-front-end.vercel.app',
   'https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev'
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
 app.use(express.json());
@@ -30,12 +35,8 @@ app.use('/api/points', pointRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-// Para rodar local
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-  });
-}
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
 
-// Para Vercel (exporta o app)
 export default app;
