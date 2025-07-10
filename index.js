@@ -15,8 +15,12 @@ app.use(cors({
     'https://hours-control-front-end.vercel.app',
     'https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // <- adiciona os métodos
 }));
+
+// Permitir preflight (OPTIONS)
+app.options('*', cors());
 
 app.use(express.json());
 
