@@ -1,14 +1,15 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "node_modules/iconv-lite/lib/**"
+  "builds": [
+    {
+      "src": "webpack.config.cjs",
+      "use": "@vercel/webpack"
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/dist/index.js"
     }
   ]
 }

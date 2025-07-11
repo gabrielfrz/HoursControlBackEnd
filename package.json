@@ -2,10 +2,11 @@
   "name": "hourscontrolbackend",
   "version": "1.0.0",
   "description": "",
-  "main": "api/index.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "dotenv -e .env node api/index.js",
+    "build": "webpack --config webpack.config.cjs",
+    "start": "npm run build && node dist/index.js",
     "dev": "dotenv -e .env nodemon api/index.js"
   },
   "dependencies": {
@@ -19,6 +20,9 @@
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "webpack": "^5.100.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-node-externals": "^3.0.0"
   }
 }
