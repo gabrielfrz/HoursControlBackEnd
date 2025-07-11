@@ -1,6 +1,19 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "index.js"
+    }
+  ],
   "functions": {
-    "src/server.js": {
+    "index.js": {
       "includeFiles": "node_modules/debug/src/**"
     }
   }
