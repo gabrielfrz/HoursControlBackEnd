@@ -1,7 +1,3 @@
 {
-  "functions": {
-    "index.js": {
-      "includeFiles": "node_modules/debug/src/**"
-    }
-  }
+  "version": 2
 }
