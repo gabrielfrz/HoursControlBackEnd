@@ -1,9 +1,18 @@
-import { registerUser, loginUser, getAllUsersWithPoints } from '../services/user.service.js';
+import {
+  registerUser,
+  loginUser,
+  getAllUsersWithPoints,
+} from "../services/user.service.js";
 
 export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    const user = await registerUser(name, email, password, role || 'estagiario');
+    const user = await registerUser(
+      name,
+      email,
+      password,
+      role || "estagiario",
+    );
     res.status(201).json(user);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -23,8 +32,10 @@ export const login = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     // Verificar se usuário é adm
-    if (req.user.role !== 'adm') {
-      return res.status(403).json({ message: 'Acesso negado: apenas ADM pode acessar' });
+    if (req.user.role !== "adm") {
+      return res
+        .status(403)
+        .json({ message: "Acesso negado: apenas ADM pode acessar" });
     }
     const users = await getAllUsersWithPoints();
     res.json(users);

@@ -1,4 +1,4 @@
-import { recordPoint, getUserPoints } from '../services/point.service.js';
+import { recordPoint, getUserPoints } from "../services/point.service.js";
 
 export const createPoint = async (req, res) => {
   try {
