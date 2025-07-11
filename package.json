@@ -2,11 +2,11 @@
   "name": "hourscontrolbackend",
   "version": "1.0.0",
   "description": "",
-  "main": "api/index.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node api/index.js",
-    "dev": "dotenv -e .env nodemon api/index.js"
+    "start": "node index.js",
+    "dev": "dotenv -e .env nodemon index.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

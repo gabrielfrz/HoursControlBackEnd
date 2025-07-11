@@ -1,4 +1,3 @@
-
 if (process.env.NODE_ENV !== 'production') {
   const dotenv = await import('dotenv');
   dotenv.config();
@@ -6,11 +5,10 @@ if (process.env.NODE_ENV !== 'production') {
 
 import express from "express";
 import cors from "cors";
-import userRoutes from "./routes/user.routes.js";
-import pointRoutes from "./routes/point.routes.js";
+import userRoutes from "./api/routes/user.routes.js";
+import pointRoutes from "./api/routes/point.routes.js";
 
 const app = express();
-
 
 const allowedOrigins = [
   "https://hours-control-front-end.vercel.app",
@@ -19,8 +17,7 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: (origin, callback ) => {
-    
+  origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -31,14 +28,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-
 app.use(express.json());
-
 
 app.use("/api", userRoutes);
 app.use("/api", pointRoutes);
-
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "API is running" });
