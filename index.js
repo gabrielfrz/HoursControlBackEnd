@@ -13,7 +13,7 @@ const app = express();
 const allowedOrigins = [
   "https://hours-control-front-end.vercel.app",
   "https://turbo-space-telegram-qr7xgg76pw7hxpjj-3000.app.github.dev",
-  "http://localhost:3001", 
+  "http://localhost:3001"
 ];
 
 const corsOptions = {
@@ -25,19 +25,19 @@ const corsOptions = {
     }
   },
   credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.use("/api", userRoutes);
 app.use("/api", pointRoutes);
 
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Backend online! 🚀🔥" });
+  res.status(200).json({ status: "ok", message: "Backend online" });
 });
-
-
 
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
@@ -45,6 +45,5 @@ if (process.env.NODE_ENV !== "production") {
     console.log(`Servidor rodando localmente na porta ${PORT}`);
   });
 }
-
 
 export default app;
