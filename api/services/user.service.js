@@ -2,36 +2,43 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "../database/db.js";
 
-export const registerUser = async (
-  name,
-  email,
-  password,
-  role = "estagiario",
-) => {
+export const registerUser = async (name, email, password, role = "estagiario") => {
+  
+  const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+  if (existingUser.rows.length > 0) {
+    throw new Error("Usuário já existe com este email");
+  }
+
+  
   const hashedPassword = await bcrypt.hash(password, 10);
+
+ 
   const result = await pool.query(
     "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *",
     [name, email, hashedPassword, role],
   );
+
   return result.rows[0];
 };
 
 export const loginUser = async (email, password) => {
-  const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-    email,
-  ]);
+  
+  const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
   const user = result.rows[0];
+
   if (!user) throw new Error("Usuário não encontrado");
 
+  
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw new Error("Senha incorreta");
 
-  // Inclui role no token
+  
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "1d" },
   );
+
   return { token, user };
 };
 
