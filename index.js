@@ -28,8 +28,19 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// Aplica CORS em todas as rotas
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
+
+// Middleware extra para garantir headers completos no preflight
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,Authorization");
+  next();
+});
+
 app.use(express.json());
 
 app.use("/api", userRoutes);
