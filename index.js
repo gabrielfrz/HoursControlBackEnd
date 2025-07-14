@@ -7,6 +7,7 @@ import express from "express";
 import cors from "cors";
 import userRoutes from "./api/routes/user.routes.js";
 import pointRoutes from "./api/routes/point.routes.js";
+import serverless from "serverless-http";
 
 const app = express();
 
@@ -28,21 +29,16 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// Aplica CORS em todas as rotas
+// Middleware CORS
 app.use(cors(corsOptions));
+
+// Garante resposta correta para preflight (OPTIONS)
 app.options("*", cors(corsOptions));
 
-// Middleware extra para garantir headers completos no preflight
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin,X-Requested-With,Content-Type,Accept,Authorization");
-  next();
-});
-
+// Middleware para JSON
 app.use(express.json());
 
+// Rotas
 app.use("/api", userRoutes);
 app.use("/api", pointRoutes);
 
@@ -50,6 +46,7 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Backend online" });
 });
 
+// Inicia localmente
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
@@ -57,4 +54,5 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-export default app;
+// Exporta handler para Vercel (serverless)
+export const handler = serverless(app);
