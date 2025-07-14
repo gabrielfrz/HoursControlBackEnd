@@ -5,8 +5,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 import express from "express";
 import cors from "cors";
-import userRoutes from "./api/routes/user.routes.js";
-import pointRoutes from "./api/routes/point.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import pointRoutes from "./routes/point.routes.js";
+
 
 const app = express();
 
