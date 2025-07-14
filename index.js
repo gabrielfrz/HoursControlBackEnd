@@ -43,7 +43,7 @@ app.use("/api", userRoutes);
 app.use("/api", pointRoutes);
 
 app.get("/api/health", (req, res) => {
-  res.status(200).json({ status: "ok", message: "Backend online" });
+  res.status(200).json({ status: "ok", message: "Backend está online" });
 });
 
 // Inicia localmente
