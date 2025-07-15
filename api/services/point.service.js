@@ -63,10 +63,10 @@ export const registerNextPoint = async (userId) => {
       nextType = "entrada";
       break;
     case 1:
-      nextType = "saida1";
+      nextType = "saida_1";
       break;
     case 2:
-      nextType = "volta";
+      nextType = "retorno";
       break;
     case 3:
       nextType = "saida_final";
