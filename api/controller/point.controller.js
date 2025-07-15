@@ -12,7 +12,10 @@ import { pool } from "../database/db.js";
 // Registrar próximo ponto automático
 export const createAutoPoint = async (req, res) => {
   try {
-    const { point, nextType } = await registerNextPoint(req.user.id);
+    
+    const customDate = req.body.date ? new Date(req.body.date) : null;
+
+    const { point, nextType } = await registerNextPoint(req.user.id, customDate);
     res.status(201).json({ point, message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}` });
   } catch (error) {
     res.status(400).json({ message: error.message });

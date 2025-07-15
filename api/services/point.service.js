@@ -54,8 +54,16 @@ export const getUserTodayPoints = async (userId) => {
   return result.rows;
 };
 
-export const registerNextPoint = async (userId) => {
-  const points = await getUserTodayPoints(userId);
+export const registerNextPoint = async (userId, customDate = null) => {
+  const dateToUse = customDate ? new Date(customDate) : new Date();
+  const formattedDate = dateToUse.toISOString().slice(0, 10);
+
+  const resultPoints = await pool.query(
+    "SELECT * FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 ORDER BY timestamp",
+    [userId, formattedDate]
+  );
+
+  const points = resultPoints.rows;
 
   let nextType;
   switch (points.length) {
@@ -72,13 +80,14 @@ export const registerNextPoint = async (userId) => {
       nextType = "saida_final";
       break;
     default:
-      throw new Error("Todos os pontos já foram registrados hoje.");
+      throw new Error("Todos os pontos já foram registrados nesse dia.");
   }
 
   const result = await pool.query(
-    "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, NOW()) RETURNING *",
-    [userId, nextType]
+    "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
+    [userId, nextType, dateToUse]
   );
 
   return { point: result.rows[0], nextType };
 };
+
