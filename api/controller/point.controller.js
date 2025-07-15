@@ -12,8 +12,22 @@ import { pool } from "../database/db.js";
 // Registrar próximo ponto automático
 export const createAutoPoint = async (req, res) => {
   try {
-    
-    const customDate = req.body.date ? new Date(req.body.date) : null;
+    let customDate = null;
+
+    if (req.body.date) {
+      customDate = new Date(req.body.date);
+
+      // Validar se é inválido
+      if (isNaN(customDate.getTime())) {
+        return res.status(400).json({ message: "Data inválida." });
+      }
+
+      // Impedir datas futuras
+      const today = new Date();
+      if (customDate > today) {
+        return res.status(400).json({ message: "Não é permitido registrar em datas futuras." });
+      }
+    }
 
     const { point, nextType } = await registerNextPoint(req.user.id, customDate);
     res.status(201).json({ point, message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}` });
@@ -21,7 +35,6 @@ export const createAutoPoint = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
 // Resumo diário com cálculo de horas
 export const getDaySummary = async (req, res) => {
   try {
