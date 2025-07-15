@@ -83,10 +83,13 @@ export const registerNextPoint = async (userId, customDate = null) => {
       throw new Error("Todos os pontos já foram registrados nesse dia.");
   }
 
+  const timestamp = dateToUse.toISOString();
+
   const result = await pool.query(
-    "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
-    [userId, nextType, dateToUse]
-  );
+  "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
+  [userId, nextType, timestamp]
+);
+
 
   return { point: result.rows[0], nextType };
 };
