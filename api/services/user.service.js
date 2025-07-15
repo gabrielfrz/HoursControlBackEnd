@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { pool } from "../database/db.js";
 
 // Registrar usuário
-export const registerUser = async (name, email, password, role = "estagiario") => {
+export const registerUser = async (name, email, password, role = "estagiario", contractHours = 6) => {
   const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
   if (existingUser.rows.length > 0) {
     throw new Error("Usuário já existe com este email");
@@ -12,8 +12,8 @@ export const registerUser = async (name, email, password, role = "estagiario") =
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const result = await pool.query(
-    "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *",
-    [name, email, hashedPassword, role]
+    "INSERT INTO users (name, email, password, role, contract_hours_per_day) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+    [name, email, hashedPassword, role, contractHours]
   );
 
   return result.rows[0];
@@ -35,7 +35,6 @@ export const loginUser = async (email, password) => {
     { expiresIn: "1d" }
   );
 
-  // Inclui photoUrl no retorno se existir
   return {
     token,
     user: {
@@ -43,15 +42,16 @@ export const loginUser = async (email, password) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      photoUrl: user.photourl
+      photoUrl: user.photourl,
+      contractHours: user.contract_hours_per_day
     }
   };
 };
 
-// Buscar todos usuários (para admin)
+// Buscar todos usuários (admin)
 export const getAllUsersWithPoints = async () => {
   const result = await pool.query(
-    "SELECT id, name, email, role, photourl FROM users ORDER BY id"
+    "SELECT id, name, email, role, photourl, contract_hours_per_day FROM users ORDER BY id"
   );
   return result.rows;
 };
@@ -70,13 +70,17 @@ export const updateUserData = async (id, data) => {
     fields.push(`photourl = $${index++}`);
     values.push(data.photoUrl);
   }
+  if (data.contractHours) {
+    fields.push(`contract_hours_per_day = $${index++}`);
+    values.push(data.contractHours);
+  }
 
   if (fields.length === 0) {
     throw new Error("Nenhum dado para atualizar");
   }
 
   values.push(id);
-  const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING id, name, email, role, photourl`;
+  const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING id, name, email, role, photourl, contract_hours_per_day`;
 
   const result = await pool.query(query, values);
   return result.rows[0];

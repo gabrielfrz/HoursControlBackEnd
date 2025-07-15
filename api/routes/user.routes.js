@@ -1,21 +1,24 @@
 import express from "express";
-import {
-  register,
-  login,
-  getAllUsers,
-  updateUser
-} from "../controller/user.controller.js";
 import { authenticateToken } from "../middleware/auth.middleware.js";
+import {
+  createAutoPoint,
+  getDaySummary,
+  listAllPointsByAdmin,
+  editPointByAdmin,
+  deletePointByAdmin,
+  createPointByAdmin,
+} from "../controller/point.controller.js";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+// Estagiário
+router.post("/register", authenticateToken, createAutoPoint);
+router.get("/summary/:date?", authenticateToken, getDaySummary);
 
-// Listar todos os usuários (Admin)
-router.get("/all", authenticateToken, getAllUsers);
-
-// Atualizar nome ou foto (Admin)
-router.put("/:id", authenticateToken, updateUser);
+// Admin
+router.get("/admin/:userId", authenticateToken, listAllPointsByAdmin);
+router.put("/admin/edit/:pointId", authenticateToken, editPointByAdmin);
+router.delete("/admin/delete/:pointId", authenticateToken, deletePointByAdmin);
+router.post("/admin/manual", authenticateToken, createPointByAdmin);
 
 export default router;
