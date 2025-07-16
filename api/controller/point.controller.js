@@ -29,7 +29,7 @@ export const createAutoPoint = async (req, res) => {
       }
     }
 
-    const { point, nextType } = await registerNextPoint(req.user.id, customDate);
+    const { point, nextType } = await registerNextPoint(req.userId, customDate);
     res.status(201).json({ point, message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}` });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -39,7 +39,7 @@ export const createAutoPoint = async (req, res) => {
 export const getDaySummary = async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().slice(0, 10);
-    const points = await getUserPointsByDate(req.user.id, date);
+    const points = await getUserPointsByDate(req.userId, date);
 
     if (points.length < 2) {
       return res.json({ points, totalHours: 0, message: "Poucos registros para calcular." });
@@ -52,7 +52,7 @@ export const getDaySummary = async (req, res) => {
       total += (end - start) / 1000 / 60 / 60;
     }
 
-    const userData = await pool.query("SELECT contract_hours_per_day FROM users WHERE id = $1", [req.user.id]);
+    const userData = await pool.query("SELECT contract_hours_per_day FROM users WHERE id = $1", [req.userId]);
     const contractHours = userData.rows[0].contract_hours_per_day || 6;
 
     res.json({
