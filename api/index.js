@@ -34,7 +34,8 @@ app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.use("/api", userRoutes);
-app.use("/api", pointRoutes);
+app.use("/api/points", pointRoutes);
+
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Backend está online" });
