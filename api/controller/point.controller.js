@@ -127,3 +127,37 @@ export const createPointByAdmin = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+export const deleteAllPointsFromUserForDay = async (req, res) => {
+  try {
+    const { date } = req.params;
+    const result = await pool.query(
+      "DELETE FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 RETURNING *",
+      [req.userId, date]
+    );
+    res.json({ message: `Apagados ${result.rowCount} pontos de ${date}` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteSinglePointFromUser = async (req, res) => {
+  try {
+    const { pointId } = req.params;
+
+    // Garante que só pode apagar ponto próprio
+    const result = await pool.query(
+      "DELETE FROM points WHERE id = $1 AND user_id = $2 RETURNING *",
+      [pointId, req.userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(403).json({ message: "Você não tem permissão para apagar esse ponto." });
+    }
+
+    res.json({ message: "Ponto excluído com sucesso" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
