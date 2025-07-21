@@ -1,6 +1,5 @@
 import { pool } from "../database/db.js";
 
-// Registrar ponto (usado em geral)
 export const recordPoint = async (userId, type, customTimestamp = null) => {
   const result = await pool.query(
     "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
@@ -40,23 +39,15 @@ export const deletePoint = async (pointId) => {
 export const getUserPointsByDate = async (userId, date) => {
   try {
     const parsedDate = new Date(date);
-    if (isNaN(parsedDate.getTime())) {
-      console.warn(`[getUserPointsByDate] Data inválida recebida: ${date}`);
-      throw new Error("Data inválida fornecida.");
-    }
-
+    if (isNaN(parsedDate.getTime())) throw new Error("Data inválida fornecida.");
     const formattedDate = parsedDate.toISOString().slice(0, 10);
-    console.log(`[getUserPointsByDate] userId=${userId}, date=${formattedDate}`);
-
     const result = await pool.query(
       "SELECT * FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 ORDER BY timestamp",
       [userId, formattedDate]
     );
-
     return result.rows;
   } catch (err) {
-    console.error(`[getUserPointsByDate] Erro ao buscar pontos para userId=${userId}, date=${date}`, err);
-    throw err;
+    throw new Error("Erro ao buscar pontos para o dia informado.");
   }
 };
 
@@ -71,9 +62,8 @@ export const getUserTodayPoints = async (userId) => {
 
 export const registerNextPoint = async (userId, customDate = null) => {
   const now = new Date();
-
   const dateToUse = customDate
-    ? new Date(`${customDate}T${now.toTimeString().split(" ")[0]}`)
+    ? new Date(`${customDate.toISOString().slice(0, 10)}T${now.toTimeString().split(" ")[0]}`)
     : now;
 
   const formattedDate = dateToUse.toISOString().slice(0, 10);
@@ -88,23 +78,18 @@ export const registerNextPoint = async (userId, customDate = null) => {
   let nextType;
   switch (points.length) {
     case 0:
-      nextType = "entrada";
-      break;
+      nextType = "entrada"; break;
     case 1:
-      nextType = "saida_1";
-      break;
+      nextType = "saida_1"; break;
     case 2:
-      nextType = "retorno";
-      break;
+      nextType = "retorno"; break;
     case 3:
-      nextType = "saida_final";
-      break;
+      nextType = "saida_final"; break;
     default:
       throw new Error("Todos os pontos já foram registrados nesse dia.");
   }
 
   const timestamp = dateToUse.toISOString();
-
   const result = await pool.query(
     "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
     [userId, nextType, timestamp]

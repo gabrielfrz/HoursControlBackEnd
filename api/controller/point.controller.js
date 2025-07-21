@@ -5,7 +5,7 @@ import {
   updatePoint,
   deletePoint,
   registerNextPoint,
-  getUserPointsByDate
+  getUserPointsByDate,
 } from "../services/point.service.js";
 import { pool } from "../database/db.js";
 
@@ -17,12 +17,10 @@ export const createAutoPoint = async (req, res) => {
     if (req.body.date) {
       customDate = new Date(req.body.date);
 
-      // Validar se é inválido
       if (isNaN(customDate.getTime())) {
         return res.status(400).json({ message: "Data inválida." });
       }
 
-      // Impedir datas futuras
       const today = new Date();
       if (customDate > today) {
         return res.status(400).json({ message: "Não é permitido registrar em datas futuras." });
@@ -35,19 +33,15 @@ export const createAutoPoint = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 // Resumo diário com cálculo de horas
 export const getDaySummary = async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().slice(0, 10);
-
-    console.log(`[Resumo] Buscando pontos para userId: ${req.userId} e data: ${date}`);
-
     const points = await getUserPointsByDate(req.userId, date);
 
-    console.log(`[Resumo] Pontos encontrados: ${points.length}`);
-
     if (points.length < 2) {
-      return res.json({ points, totalHours: 0, message: "Poucos registros para calcular." });
+      return res.json({ points, totalHours: 0, contractHours: 0, difference: 0, message: "Poucos registros para calcular.", isComplete: false });
     }
 
     let total = 0;
@@ -60,31 +54,30 @@ export const getDaySummary = async (req, res) => {
     const userData = await pool.query("SELECT contract_hours_per_day FROM users WHERE id = $1", [req.userId]);
 
     if (!userData.rows[0]) {
-      console.warn(`[Resumo] Usuário não encontrado para ID: ${req.userId}`);
       return res.status(404).json({ message: "Usuário não encontrado para gerar resumo." });
     }
 
     const contractHours = userData.rows[0].contract_hours_per_day || 6;
+    const isComplete = total >= contractHours;
 
     res.json({
       points,
       totalHours: total.toFixed(2),
       contractHours,
       difference: (total - contractHours).toFixed(2),
-      message: total >= contractHours
-        ? "Meta diária atingida ou horas extras."
-        : "Horas abaixo da meta, possível compensar."
+      isComplete,
+      message: isComplete ? "Meta diária atingida ou horas extras." : "Horas abaixo da meta, possível compensar.",
     });
   } catch (error) {
-    console.error("[Resumo] Erro ao gerar resumo:", error);
-    res.status(400).json({ message: error.message || "Erro interno ao gerar resumo." });
+    res.status(400).json({ message: error.message || "Erro ao gerar resumo." });
   }
 };
-// Histórico completo de um usuário (admin)
+
+// Histórico completo (admin)
 export const listAllPointsByAdmin = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode acessar" });
+      return res.status(403).json({ message: "Apenas administradores têm acesso." });
     }
 
     const { userId } = req.params;
@@ -99,7 +92,7 @@ export const listAllPointsByAdmin = async (req, res) => {
 export const editPointByAdmin = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode acessar" });
+      return res.status(403).json({ message: "Apenas administradores têm acesso." });
     }
 
     const { pointId } = req.params;
@@ -111,26 +104,11 @@ export const editPointByAdmin = async (req, res) => {
   }
 };
 
-// Excluir ponto (admin)
-export const deletePointByAdmin = async (req, res) => {
-  try {
-    if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode acessar" });
-    }
-
-    const { pointId } = req.params;
-    await deletePoint(pointId);
-    res.json({ message: "Ponto excluído com sucesso" });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
 // Criar ponto manual (admin)
 export const createPointByAdmin = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode acessar" });
+      return res.status(403).json({ message: "Apenas administradores têm acesso." });
     }
 
     const { userId, type, timestamp } = req.body;
@@ -141,6 +119,26 @@ export const createPointByAdmin = async (req, res) => {
   }
 };
 
+// Excluir ponto individual (usuário)
+export const deleteSinglePointFromUser = async (req, res) => {
+  try {
+    const { pointId } = req.params;
+    const result = await pool.query(
+      "DELETE FROM points WHERE id = $1 AND user_id = $2 RETURNING *",
+      [pointId, req.userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(403).json({ message: "Você não tem permissão para excluir esse ponto." });
+    }
+
+    res.json({ message: "Ponto excluído com sucesso." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Excluir todos os pontos de um dia (usuário)
 export const deleteAllPointsFromUserForDay = async (req, res) => {
   try {
     const { date } = req.params;
@@ -148,29 +146,8 @@ export const deleteAllPointsFromUserForDay = async (req, res) => {
       "DELETE FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 RETURNING *",
       [req.userId, date]
     );
-    res.json({ message: `Apagados ${result.rowCount} pontos de ${date}` });
+    res.json({ message: `Apagados ${result.rowCount} pontos do dia ${date}` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
-export const deleteSinglePointFromUser = async (req, res) => {
-  try {
-    const { pointId } = req.params;
-
-    // Garante que só pode apagar ponto próprio
-    const result = await pool.query(
-      "DELETE FROM points WHERE id = $1 AND user_id = $2 RETURNING *",
-      [pointId, req.userId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(403).json({ message: "Você não tem permissão para apagar esse ponto." });
-    }
-
-    res.json({ message: "Ponto excluído com sucesso" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
