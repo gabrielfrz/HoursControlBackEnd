@@ -161,11 +161,8 @@ export const editOwnPoint = async (req, res) => {
       return res.status(400).json({ message: "Timestamp inválido." });
     }
 
-    //  Corrige o timestamp para UTC preservando a hora local
-    const localDate = new Date(timestamp);
-    const utcTimestamp = new Date(
-      localDate.getTime() - localDate.getTimezoneOffset() * 60000
-    ).toISOString();
+  // Timestamp já chega em UTC do frontend, apenas usa diretamente
+    const utcTimestamp = new Date(timestamp).toISOString();
 
     const result = await pool.query(
       "UPDATE points SET timestamp = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
