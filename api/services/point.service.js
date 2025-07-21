@@ -38,11 +38,26 @@ export const deletePoint = async (pointId) => {
 };
 
 export const getUserPointsByDate = async (userId, date) => {
-  const result = await pool.query(
-    "SELECT * FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 ORDER BY timestamp",
-    [userId, date]
-  );
-  return result.rows;
+  try {
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      console.warn(`[getUserPointsByDate] Data inválida recebida: ${date}`);
+      throw new Error("Data inválida fornecida.");
+    }
+
+    const formattedDate = parsedDate.toISOString().slice(0, 10);
+    console.log(`[getUserPointsByDate] userId=${userId}, date=${formattedDate}`);
+
+    const result = await pool.query(
+      "SELECT * FROM points WHERE user_id = $1 AND DATE(timestamp) = $2 ORDER BY timestamp",
+      [userId, formattedDate]
+    );
+
+    return result.rows;
+  } catch (err) {
+    console.error(`[getUserPointsByDate] Erro ao buscar pontos para userId=${userId}, date=${date}`, err);
+    throw err;
+  }
 };
 
 export const getUserTodayPoints = async (userId) => {
@@ -55,7 +70,12 @@ export const getUserTodayPoints = async (userId) => {
 };
 
 export const registerNextPoint = async (userId, customDate = null) => {
-  const dateToUse = customDate ? new Date(customDate) : new Date();
+  const now = new Date();
+
+  const dateToUse = customDate
+    ? new Date(`${customDate}T${now.toTimeString().split(" ")[0]}`)
+    : now;
+
   const formattedDate = dateToUse.toISOString().slice(0, 10);
 
   const resultPoints = await pool.query(
@@ -86,11 +106,9 @@ export const registerNextPoint = async (userId, customDate = null) => {
   const timestamp = dateToUse.toISOString();
 
   const result = await pool.query(
-  "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
-  [userId, nextType, timestamp]
-);
-
+    "INSERT INTO points (user_id, type, timestamp) VALUES ($1, $2, $3) RETURNING *",
+    [userId, nextType, timestamp]
+  );
 
   return { point: result.rows[0], nextType };
 };
-

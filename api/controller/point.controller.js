@@ -39,7 +39,12 @@ export const createAutoPoint = async (req, res) => {
 export const getDaySummary = async (req, res) => {
   try {
     const date = req.params.date || new Date().toISOString().slice(0, 10);
+
+    console.log(`[Resumo] Buscando pontos para userId: ${req.userId} e data: ${date}`);
+
     const points = await getUserPointsByDate(req.userId, date);
+
+    console.log(`[Resumo] Pontos encontrados: ${points.length}`);
 
     if (points.length < 2) {
       return res.json({ points, totalHours: 0, message: "Poucos registros para calcular." });
@@ -53,6 +58,12 @@ export const getDaySummary = async (req, res) => {
     }
 
     const userData = await pool.query("SELECT contract_hours_per_day FROM users WHERE id = $1", [req.userId]);
+
+    if (!userData.rows[0]) {
+      console.warn(`[Resumo] Usuário não encontrado para ID: ${req.userId}`);
+      return res.status(404).json({ message: "Usuário não encontrado para gerar resumo." });
+    }
+
     const contractHours = userData.rows[0].contract_hours_per_day || 6;
 
     res.json({
@@ -60,13 +71,15 @@ export const getDaySummary = async (req, res) => {
       totalHours: total.toFixed(2),
       contractHours,
       difference: (total - contractHours).toFixed(2),
-      message: total >= contractHours ? "Meta diária atingida ou horas extras." : "Horas abaixo da meta, possível compensar."
+      message: total >= contractHours
+        ? "Meta diária atingida ou horas extras."
+        : "Horas abaixo da meta, possível compensar."
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error("[Resumo] Erro ao gerar resumo:", error);
+    res.status(400).json({ message: error.message || "Erro interno ao gerar resumo." });
   }
 };
-
 // Histórico completo de um usuário (admin)
 export const listAllPointsByAdmin = async (req, res) => {
   try {
