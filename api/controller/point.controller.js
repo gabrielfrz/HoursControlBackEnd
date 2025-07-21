@@ -151,3 +151,28 @@ export const deleteAllPointsFromUserForDay = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const editOwnPoint = async (req, res) => {
+  try {
+    const { pointId } = req.params;
+    const { timestamp } = req.body;
+
+    if (!timestamp || isNaN(new Date(timestamp).getTime())) {
+      return res.status(400).json({ message: "Timestamp inválido." });
+    }
+
+    const result = await pool.query(
+      "UPDATE points SET timestamp = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
+      [timestamp, pointId, req.userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(403).json({ message: "Você não tem permissão para editar este ponto." });
+    }
+
+    res.json({ message: "Ponto atualizado com sucesso.", point: result.rows[0] });
+  } catch (error) {
+    console.error("Erro ao editar ponto:", error);
+    res.status(500).json({ message: "Erro ao editar ponto." });
+  }
+};
