@@ -198,3 +198,76 @@ export const editOwnPoint = async (req, res) => {
     res.status(500).json({ message: "Erro ao editar ponto." });
   }
 }
+
+
+export const getMonthSummary = async (req, res) => {
+  try {
+    const { year, month } = req.params;
+    const userId = req.userId;
+
+    const startDate = new Date(`${year}-${month}-01`);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    // Pega todos os pontos do mês
+    const pointsQuery = await pool.query(
+      `SELECT id, timestamp, type
+       FROM points
+       WHERE user_id = $1
+         AND timestamp >= $2 AND timestamp < $3
+       ORDER BY timestamp ASC`,
+      [userId, startDate.toISOString(), endDate.toISOString()]
+    );
+    const points = pointsQuery.rows;
+
+    // Pega dias com exceções
+    const exceptionsQuery = await pool.query(
+      `SELECT date, type FROM day_exceptions WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      [userId, startDate.toISOString(), endDate.toISOString()]
+    );
+    const exceptions = new Set(exceptionsQuery.rows.map(e => e.date.toISOString().slice(0, 10)));
+
+    // Agrupar por dia
+    const dailyMap = {};
+    for (const point of points) {
+      const day = new Date(point.timestamp).toISOString().slice(0, 10);
+      if (!dailyMap[day]) dailyMap[day] = [];
+      dailyMap[day].push(point);
+    }
+
+    let totalWorked = 0;
+    const dailySummaries = [];
+
+    for (const [day, dailyPoints] of Object.entries(dailyMap)) {
+      const date = new Date(day);
+      const isWeekend = [0, 6].includes(date.getDay());
+      const isException = exceptions.has(day);
+
+      if (isWeekend || isException) continue;
+
+      let totalDay = 0;
+      for (let i = 0; i < dailyPoints.length - 1; i += 2) {
+        const start = new Date(dailyPoints[i].timestamp);
+        const end = new Date(dailyPoints[i + 1].timestamp);
+        totalDay += (end - start) / 1000 / 60 / 60;
+      }
+
+      totalWorked += totalDay;
+
+      dailySummaries.push({
+        date: day,
+        hours: Number(totalDay.toFixed(2)),
+      });
+    }
+
+    res.json({
+      year,
+      month,
+      totalWorked: Number(totalWorked.toFixed(2)),
+      days: dailySummaries,
+    });
+  } catch (err) {
+    console.error('Erro ao calcular resumo mensal:', err);
+    res.status(500).json({ message: 'Erro ao calcular resumo mensal.' });
+  }
+};
