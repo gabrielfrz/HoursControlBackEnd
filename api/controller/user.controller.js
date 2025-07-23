@@ -2,11 +2,9 @@ import {
   registerUser,
   loginUser,
   getAllUsersWithPoints,
-  updateUserData
+  updateUserData,
+  deleteUserById
 } from "../services/user.service.js";
-
-import { deleteUserById } from "../services/user.service.js"; 
-
 
 // Registrar novo usuário
 export const register = async (req, res) => {
@@ -50,20 +48,25 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Atualizar dados do usuário (nome, email, senha, foto) - apenas ADM
+// Atualizar dados do usuário (nome, email, senha, contrato)
 export const updateUser = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode editar" });
+      return res
+        .status(403)
+        .json({ message: "Acesso negado: apenas ADM pode editar" });
     }
 
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, contractHours } = req.body;
 
     const fieldsToUpdate = {};
     if (name) fieldsToUpdate.name = name;
     if (email) fieldsToUpdate.email = email;
     if (password) fieldsToUpdate.password = password;
+    if (contractHours) fieldsToUpdate.contractHours = contractHours;
+
+    console.log("Atualizando com:", fieldsToUpdate); 
 
     const updatedUser = await updateUserData(id, fieldsToUpdate);
     res.json(updatedUser);
@@ -72,15 +75,18 @@ export const updateUser = async (req, res) => {
   }
 };
 
+// Excluir usuário
 export const deleteUser = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Acesso negado: apenas ADM pode excluir" });
+      return res
+        .status(403)
+        .json({ message: "Acesso negado: apenas ADM pode excluir" });
     }
 
     const { id } = req.params;
     await deleteUserById(id);
-    res.sendStatus(204); // Sucesso sem conteúdo
+    res.sendStatus(204);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

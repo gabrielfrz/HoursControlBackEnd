@@ -3,8 +3,17 @@ import jwt from "jsonwebtoken";
 import { pool } from "../database/db.js";
 
 // Registrar usuário
-export const registerUser = async (name, email, password, role = "estagiario", contractHours = 6) => {
-  const existingUser = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+export const registerUser = async (
+  name,
+  email,
+  password,
+  role = "estagiario",
+  contractHours = 6
+) => {
+  const existingUser = await pool.query(
+    "SELECT * FROM users WHERE email = $1",
+    [email]
+  );
   if (existingUser.rows.length > 0) {
     throw new Error("Usuário já existe com este email");
   }
@@ -21,7 +30,9 @@ export const registerUser = async (name, email, password, role = "estagiario", c
 
 // Login
 export const loginUser = async (email, password) => {
-  const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+  const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+    email,
+  ]);
   const user = result.rows[0];
 
   if (!user) throw new Error("Usuário não encontrado");
@@ -42,12 +53,12 @@ export const loginUser = async (email, password) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      contractHours: user.contract_hours_per_day
-    }
+      contractHours: user.contract_hours_per_day,
+    },
   };
 };
 
-// Buscar todos os usuários (admin)
+// Buscar todos os usuários
 export const getAllUsersWithPoints = async () => {
   const result = await pool.query(
     "SELECT id, name, email, role, contract_hours_per_day FROM users ORDER BY id"
@@ -55,7 +66,7 @@ export const getAllUsersWithPoints = async () => {
   return result.rows;
 };
 
-// Atualizar dados do usuário
+// Atualizar dados
 export const updateUserData = async (id, data) => {
   const fields = [];
   const values = [];
@@ -95,12 +106,15 @@ export const updateUserData = async (id, data) => {
   }
 
   values.push(id);
-  const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING id, name, email, role, contract_hours_per_day`;
+  const query = `UPDATE users SET ${fields.join(
+    ", "
+  )} WHERE id = $${index} RETURNING id, name, email, role, contract_hours_per_day`;
 
   const result = await pool.query(query, values);
   return result.rows[0];
 };
 
+// Excluir usuário
 export const deleteUserById = async (id) => {
   const result = await pool.query("DELETE FROM users WHERE id = $1", [id]);
   if (result.rowCount === 0) {
