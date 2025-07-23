@@ -5,7 +5,7 @@ import {
   updateUserData
 } from "../services/user.service.js";
 
-// Registrar
+// Registrar novo usuário
 export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -32,7 +32,7 @@ export const login = async (req, res) => {
   }
 };
 
-// Listar todos os usuários (admin)
+// Listar todos os usuários (somente ADM)
 export const getAllUsers = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
@@ -47,7 +47,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Atualizar nome ou foto (admin)
+// Atualizar dados do usuário (nome, email, senha, foto) - apenas ADM
 export const updateUser = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
@@ -57,9 +57,15 @@ export const updateUser = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { name, photoUrl } = req.body;
+    const { name, email, password, photoUrl } = req.body;
 
-    const updatedUser = await updateUserData(id, { name, photoUrl });
+    const fieldsToUpdate = {};
+    if (name) fieldsToUpdate.name = name;
+    if (email) fieldsToUpdate.email = email;
+    if (password) fieldsToUpdate.password = password;
+    if (photoUrl) fieldsToUpdate.photoUrl = photoUrl;
+
+    const updatedUser = await updateUserData(id, fieldsToUpdate);
     res.json(updatedUser);
   } catch (error) {
     res.status(400).json({ message: error.message });

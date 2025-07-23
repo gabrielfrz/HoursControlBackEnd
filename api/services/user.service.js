@@ -66,10 +66,29 @@ export const updateUserData = async (id, data) => {
     fields.push(`name = $${index++}`);
     values.push(data.name);
   }
+
+  if (data.email) {
+    // Verifica se já existe outro usuário com este email
+    const emailCheck = await pool.query("SELECT id FROM users WHERE email = $1 AND id != $2", [data.email, id]);
+    if (emailCheck.rows.length > 0) {
+      throw new Error("Este email já está em uso por outro usuário");
+    }
+
+    fields.push(`email = $${index++}`);
+    values.push(data.email);
+  }
+
+  if (data.password) {
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    fields.push(`password = $${index++}`);
+    values.push(hashedPassword);
+  }
+
   if (data.photoUrl) {
     fields.push(`photourl = $${index++}`);
     values.push(data.photoUrl);
   }
+
   if (data.contractHours) {
     fields.push(`contract_hours_per_day = $${index++}`);
     values.push(data.contractHours);
