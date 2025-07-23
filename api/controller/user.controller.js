@@ -51,19 +51,16 @@ export const getAllUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     if (req.user.role !== "adm") {
-      return res
-        .status(403)
-        .json({ message: "Acesso negado: apenas ADM pode editar" });
+      return res.status(403).json({ message: "Acesso negado: apenas ADM pode editar" });
     }
 
     const { id } = req.params;
-    const { name, email, password, photoUrl } = req.body;
+    const { name, email, password } = req.body;
 
     const fieldsToUpdate = {};
     if (name) fieldsToUpdate.name = name;
     if (email) fieldsToUpdate.email = email;
     if (password) fieldsToUpdate.password = password;
-    if (photoUrl) fieldsToUpdate.photoUrl = photoUrl;
 
     const updatedUser = await updateUserData(id, fieldsToUpdate);
     res.json(updatedUser);

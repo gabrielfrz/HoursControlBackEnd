@@ -42,13 +42,12 @@ export const loginUser = async (email, password) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      photoUrl: user.photourl,
       contractHours: user.contract_hours_per_day
     }
   };
 };
 
-// Buscar todos usuários (admin)
+// Buscar todos os usuários (admin)
 export const getAllUsersWithPoints = async () => {
   const result = await pool.query(
     "SELECT id, name, email, role, contract_hours_per_day FROM users ORDER BY id"
@@ -68,8 +67,10 @@ export const updateUserData = async (id, data) => {
   }
 
   if (data.email) {
-    // Verifica se já existe outro usuário com este email
-    const emailCheck = await pool.query("SELECT id FROM users WHERE email = $1 AND id != $2", [data.email, id]);
+    const emailCheck = await pool.query(
+      "SELECT id FROM users WHERE email = $1 AND id != $2",
+      [data.email, id]
+    );
     if (emailCheck.rows.length > 0) {
       throw new Error("Este email já está em uso por outro usuário");
     }
@@ -84,11 +85,6 @@ export const updateUserData = async (id, data) => {
     values.push(hashedPassword);
   }
 
-  if (data.photoUrl) {
-    fields.push(`photourl = $${index++}`);
-    values.push(data.photoUrl);
-  }
-
   if (data.contractHours) {
     fields.push(`contract_hours_per_day = $${index++}`);
     values.push(data.contractHours);
@@ -99,7 +95,7 @@ export const updateUserData = async (id, data) => {
   }
 
   values.push(id);
-  const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING id, name, email, role, photourl, contract_hours_per_day`;
+  const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${index} RETURNING id, name, email, role, contract_hours_per_day`;
 
   const result = await pool.query(query, values);
   return result.rows[0];
