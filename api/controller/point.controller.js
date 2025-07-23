@@ -15,20 +15,24 @@ export const createAutoPoint = async (req, res) => {
     let customDate = null;
 
     if (req.body.date) {
+      // Interpreta a data enviada como ISO (ex: "2025-07-01T15:00:00.000Z")
       customDate = new Date(req.body.date);
 
       if (isNaN(customDate.getTime())) {
         return res.status(400).json({ message: "Data inválida." });
       }
 
-      const today = new Date();
-      if (customDate > today) {
+      const now = new Date();
+      if (customDate.getTime() > now.getTime()) {
         return res.status(400).json({ message: "Não é permitido registrar em datas futuras." });
       }
     }
 
     const { point, nextType } = await registerNextPoint(req.userId, customDate);
-    res.status(201).json({ point, message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}` });
+    res.status(201).json({
+      point,
+      message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}`,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
