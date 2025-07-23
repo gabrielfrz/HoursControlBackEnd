@@ -213,7 +213,9 @@ export const getMonthSummary = async (req, res) => {
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
 
-    // Pega todos os pontos do mês
+    const contractHours = 6; // ou buscar do banco se preferir
+
+    // Busca os pontos registrados
     const pointsQuery = await pool.query(
       `SELECT id, timestamp, type
        FROM points
@@ -224,43 +226,54 @@ export const getMonthSummary = async (req, res) => {
     );
     const points = pointsQuery.rows;
 
-    // Pega dias com exceções
+    // Busca exceções (feriados ou folgas)
     const exceptionsQuery = await pool.query(
-      `SELECT date, type FROM day_exceptions WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      `SELECT date, type FROM day_exceptions 
+       WHERE user_id = $1 AND date >= $2 AND date < $3`,
       [userId, startDate.toISOString(), endDate.toISOString()]
     );
-    const exceptions = new Set(exceptionsQuery.rows.map(e => e.date.toISOString().slice(0, 10)));
+    const exceptionsMap = new Map(
+      exceptionsQuery.rows.map(e => [e.date.toISOString().slice(0, 10), e.type])
+    );
 
-    // Agrupar por dia
-    const dailyMap = {};
+    // Agrupa os pontos por dia
+    const groupedPoints = {};
     for (const point of points) {
       const day = new Date(point.timestamp).toISOString().slice(0, 10);
-      if (!dailyMap[day]) dailyMap[day] = [];
-      dailyMap[day].push(point);
+      if (!groupedPoints[day]) groupedPoints[day] = [];
+      groupedPoints[day].push(point);
     }
 
+    // Lista todos os dias do mês
+    const days = [];
     let totalWorked = 0;
-    const dailySummaries = [];
+    let expectedHours = 0;
 
-    for (const [day, dailyPoints] of Object.entries(dailyMap)) {
-      const date = new Date(day);
-      const isWeekend = [0, 6].includes(date.getDay());
-      const isException = exceptions.has(day);
+    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+      const dayStr = d.toISOString().slice(0, 10);
+      const isWeekend = [0, 6].includes(d.getDay());
+      const isException = exceptionsMap.has(dayStr);
+      const expected = !isWeekend && !isException ? contractHours : 0;
 
-      if (isWeekend || isException) continue;
-
-      let totalDay = 0;
-      for (let i = 0; i < dailyPoints.length - 1; i += 2) {
-        const start = new Date(dailyPoints[i].timestamp);
-        const end = new Date(dailyPoints[i + 1].timestamp);
-        totalDay += (end - start) / 1000 / 60 / 60;
+      let worked = 0;
+      if (groupedPoints[dayStr]) {
+        const dayPoints = groupedPoints[dayStr];
+        for (let i = 0; i < dayPoints.length - 1; i += 2) {
+          const start = new Date(dayPoints[i].timestamp);
+          const end = new Date(dayPoints[i + 1].timestamp);
+          worked += (end - start) / 1000 / 60 / 60;
+        }
       }
 
-      totalWorked += totalDay;
+      totalWorked += worked;
+      expectedHours += expected;
 
-      dailySummaries.push({
-        date: day,
-        hours: Number(totalDay.toFixed(2)),
+      days.push({
+        date: dayStr,
+        hours: Number(worked.toFixed(2)),
+        expected,
+        isWeekend,
+        isException,
       });
     }
 
@@ -268,7 +281,9 @@ export const getMonthSummary = async (req, res) => {
       year,
       month,
       totalWorked: Number(totalWorked.toFixed(2)),
-      days: dailySummaries,
+      expectedHours: Number(expectedHours.toFixed(2)),
+      bankHours: Number((totalWorked - expectedHours).toFixed(2)),
+      days,
     });
   } catch (err) {
     console.error('Erro ao calcular resumo mensal:', err);
