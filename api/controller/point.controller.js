@@ -213,77 +213,69 @@ export const getMonthSummary = async (req, res) => {
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
 
-    const contractHours = 6; // ou buscar do banco se preferir
-
-    // Busca os pontos registrados
+    // Pega pontos
     const pointsQuery = await pool.query(
       `SELECT id, timestamp, type
        FROM points
-       WHERE user_id = $1
-         AND timestamp >= $2 AND timestamp < $3
+       WHERE user_id = $1 AND timestamp >= $2 AND timestamp < $3
        ORDER BY timestamp ASC`,
       [userId, startDate.toISOString(), endDate.toISOString()]
     );
     const points = pointsQuery.rows;
 
-    // Busca exceções (feriados ou folgas)
+    // Exceções (feriados/folgas)
     const exceptionsQuery = await pool.query(
-      `SELECT date, type FROM day_exceptions 
-       WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      `SELECT date, type FROM day_exceptions WHERE user_id = $1 AND date >= $2 AND date < $3`,
       [userId, startDate.toISOString(), endDate.toISOString()]
     );
-    const exceptionsMap = new Map(
-      exceptionsQuery.rows.map(e => [e.date.toISOString().slice(0, 10), e.type])
-    );
+    const exceptions = new Set(exceptionsQuery.rows.map(e => e.date.toISOString().slice(0, 10)));
 
-    // Agrupa os pontos por dia
-    const groupedPoints = {};
+    // Agrupa pontos por dia
+    const dailyMap = {};
     for (const point of points) {
       const day = new Date(point.timestamp).toISOString().slice(0, 10);
-      if (!groupedPoints[day]) groupedPoints[day] = [];
-      groupedPoints[day].push(point);
+      if (!dailyMap[day]) dailyMap[day] = [];
+      dailyMap[day].push(point);
     }
 
-    // Lista todos os dias do mês
-    const days = [];
-    let totalWorked = 0;
-    let expectedHours = 0;
+    // Gera lista de todos os dias do mês
+    const allDays = [];
+    const current = new Date(startDate);
+    while (current < endDate) {
+      const iso = current.toISOString().slice(0, 10);
+      const isWeekend = [0, 6].includes(current.getDay());
+      const isException = exceptions.has(iso);
 
-    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
-      const dayStr = d.toISOString().slice(0, 10);
-      const isWeekend = [0, 6].includes(d.getDay());
-      const isException = exceptionsMap.has(dayStr);
-      const expected = !isWeekend && !isException ? contractHours : 0;
-
-      let worked = 0;
-      if (groupedPoints[dayStr]) {
-        const dayPoints = groupedPoints[dayStr];
-        for (let i = 0; i < dayPoints.length - 1; i += 2) {
-          const start = new Date(dayPoints[i].timestamp);
-          const end = new Date(dayPoints[i + 1].timestamp);
-          worked += (end - start) / 1000 / 60 / 60;
-        }
+      let totalDay = 0;
+      const dailyPoints = dailyMap[iso] || [];
+      for (let i = 0; i < dailyPoints.length - 1; i += 2) {
+        const start = new Date(dailyPoints[i].timestamp);
+        const end = new Date(dailyPoints[i + 1].timestamp);
+        totalDay += (end - start) / 1000 / 60 / 60;
       }
 
-      totalWorked += worked;
-      expectedHours += expected;
-
-      days.push({
-        date: dayStr,
-        hours: Number(worked.toFixed(2)),
-        expected,
+      allDays.push({
+        date: iso,
+        hours: Number(totalDay.toFixed(2)),
         isWeekend,
-        isException,
+        isException
       });
+
+      current.setDate(current.getDate() + 1);
     }
+
+    // Total esperado
+    const contractPerDay = 6;
+    const expectedHours = allDays.filter(d => !d.isWeekend && !d.isException).length * contractPerDay;
+    const actualWorked = allDays.reduce((acc, d) => acc + (d.hours || 0), 0);
 
     res.json({
       year,
       month,
-      totalWorked: Number(totalWorked.toFixed(2)),
       expectedHours: Number(expectedHours.toFixed(2)),
-      bankHours: Number((totalWorked - expectedHours).toFixed(2)),
-      days,
+      actualWorked: Number(actualWorked.toFixed(2)),
+      bancoHoras: Number((actualWorked - expectedHours).toFixed(2)),
+      days: allDays,
     });
   } catch (err) {
     console.error('Erro ao calcular resumo mensal:', err);
