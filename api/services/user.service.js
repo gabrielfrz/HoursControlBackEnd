@@ -51,7 +51,7 @@ export const loginUser = async (email, password) => {
 // Buscar todos usuários (admin)
 export const getAllUsersWithPoints = async () => {
   const result = await pool.query(
-    "SELECT id, name, email, role, photourl, contract_hours_per_day FROM users ORDER BY id"
+    "SELECT id, name, email, role, contract_hours_per_day FROM users ORDER BY id"
   );
   return result.rows;
 };
