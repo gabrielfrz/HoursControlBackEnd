@@ -37,21 +37,36 @@ export const createAutoPoint = async (req, res) => {
 // Resumo diário com cálculo de horas
 export const getDaySummary = async (req, res) => {
   try {
-    const date = req.params.date || new Date().toISOString().slice(0, 10);
-    const points = await getUserPointsByDate(req.userId, date);
+    const rawDate = req.params.date || new Date().toISOString().slice(0, 10);
+    const localDate = new Date(rawDate);
+    localDate.setUTCHours(0, 0, 0, 0); 
+    const formattedDate = localDate.toISOString().split('T')[0];
+
+    const points = await getUserPointsByDate(req.userId, formattedDate);
 
     if (points.length < 2) {
-      return res.json({ points, totalHours: 0, contractHours: 0, difference: 0, message: "Poucos registros para calcular.", isComplete: false });
+      return res.json({
+        date: formattedDate,
+        points,
+        totalHours: 0,
+        contractHours: 0,
+        difference: 0,
+        message: "Poucos registros para calcular.",
+        isComplete: false
+      });
     }
 
     let total = 0;
     for (let i = 0; i < points.length - 1; i += 2) {
       const start = new Date(points[i].timestamp);
       const end = new Date(points[i + 1].timestamp);
-      total += (end - start) / 1000 / 60 / 60;
+      total += (end - start) / 1000 / 60 / 60; // horas
     }
 
-    const userData = await pool.query("SELECT contract_hours_per_day FROM users WHERE id = $1", [req.userId]);
+    const userData = await pool.query(
+      "SELECT contract_hours_per_day FROM users WHERE id = $1",
+      [req.userId]
+    );
 
     if (!userData.rows[0]) {
       return res.status(404).json({ message: "Usuário não encontrado para gerar resumo." });
@@ -61,18 +76,21 @@ export const getDaySummary = async (req, res) => {
     const isComplete = total >= contractHours;
 
     res.json({
-        date, 
-        points,
-        totalHours: total.toFixed(2),
-        contractHours,
-        difference: (total - contractHours).toFixed(2),
-        isComplete,
-        message: isComplete ? "Meta diária atingida ou horas extras." : "Horas abaixo da meta, possível compensar.",
-});
+      date: formattedDate,
+      points,
+      totalHours: total.toFixed(2),
+      contractHours,
+      difference: (total - contractHours).toFixed(2),
+      isComplete,
+      message: isComplete
+        ? "Meta diária atingida ou horas extras."
+        : "Horas abaixo da meta, possível compensar.",
+    });
   } catch (error) {
     res.status(400).json({ message: error.message || "Erro ao gerar resumo." });
   }
 };
+
 
 // Histórico completo (admin)
 export const listAllPointsByAdmin = async (req, res) => {
