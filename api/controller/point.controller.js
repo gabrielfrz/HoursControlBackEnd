@@ -61,13 +61,14 @@ export const getDaySummary = async (req, res) => {
     const isComplete = total >= contractHours;
 
     res.json({
-      points,
-      totalHours: total.toFixed(2),
-      contractHours,
-      difference: (total - contractHours).toFixed(2),
-      isComplete,
-      message: isComplete ? "Meta diária atingida ou horas extras." : "Horas abaixo da meta, possível compensar.",
-    });
+        date, 
+        points,
+        totalHours: total.toFixed(2),
+        contractHours,
+        difference: (total - contractHours).toFixed(2),
+        isComplete,
+        message: isComplete ? "Meta diária atingida ou horas extras." : "Horas abaixo da meta, possível compensar.",
+});
   } catch (error) {
     res.status(400).json({ message: error.message || "Erro ao gerar resumo." });
   }
