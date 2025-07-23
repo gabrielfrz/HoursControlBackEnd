@@ -15,8 +15,9 @@ export const createAutoPoint = async (req, res) => {
     let customDate = null;
 
     if (req.body.date) {
-      // Interpreta a data enviada como ISO (ex: "2025-07-01T15:00:00.000Z")
-      customDate = new Date(req.body.date);
+      // Interpreta corretamente como data local para evitar UTC
+      const [year, month, day] = req.body.date.split('-').map(Number);
+      customDate = new Date(year, month - 1, day, 12, 0, 0); 
 
       if (isNaN(customDate.getTime())) {
         return res.status(400).json({ message: "Data inválida." });
