@@ -5,6 +5,9 @@ import {
   updateUserData
 } from "../services/user.service.js";
 
+import { deleteUserById } from "../services/user.service.js"; 
+
+
 // Registrar novo usuário
 export const register = async (req, res) => {
   try {
@@ -64,6 +67,20 @@ export const updateUser = async (req, res) => {
 
     const updatedUser = await updateUserData(id, fieldsToUpdate);
     res.json(updatedUser);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    if (req.user.role !== "adm") {
+      return res.status(403).json({ message: "Acesso negado: apenas ADM pode excluir" });
+    }
+
+    const { id } = req.params;
+    await deleteUserById(id);
+    res.sendStatus(204); // Sucesso sem conteúdo
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
