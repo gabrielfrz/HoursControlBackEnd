@@ -6,6 +6,9 @@ import {
   deleteUserById
 } from "../services/user.service.js";
 
+import { pool } from '../database/db.js';
+
+
 // Registrar novo usuário
 export const register = async (req, res) => {
   try {
