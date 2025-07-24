@@ -104,3 +104,24 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+export const updateOwnPassword = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    const result = await pool.query("SELECT password FROM users WHERE id = $1", [userId]);
+    const user = result.rows[0];
+
+    if (!user) return res.status(404).json({ message: "Usuário não encontrado" });
+
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) return res.status(401).json({ message: "Senha atual incorreta" });
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query("UPDATE users SET password = $1 WHERE id = $2", [hashedNewPassword, userId]);
+
+    res.status(200).json({ message: "Senha atualizada com sucesso" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
