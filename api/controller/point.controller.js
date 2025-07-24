@@ -17,14 +17,20 @@ export const createAutoPoint = async (req, res) => {
     if (req.body.date) {
       // Interpreta corretamente como data local para evitar UTC
       const [year, month, day] = req.body.date.split('-').map(Number);
-      customDate = new Date(year, month - 1, day, 12, 0, 0); 
+      customDate = new Date(year, month - 1, day, 12, 0, 0);
 
       if (isNaN(customDate.getTime())) {
         return res.status(400).json({ message: "Data inválida." });
       }
 
+      // Comparar apenas datas (ignorando hora) para evitar falsos positivos
       const now = new Date();
-      if (customDate.getTime() > now.getTime()) {
+      now.setHours(0, 0, 0, 0);
+
+      const customDateOnly = new Date(customDate);
+      customDateOnly.setHours(0, 0, 0, 0);
+
+      if (customDateOnly > now) {
         return res.status(400).json({ message: "Não é permitido registrar em datas futuras." });
       }
     }
@@ -38,7 +44,6 @@ export const createAutoPoint = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
 // Resumo diário com cálculo de horas
 export const getDaySummary = async (req, res) => {
   try {
