@@ -234,7 +234,13 @@ export const getMonthSummary = async (req, res) => {
       `SELECT date, type FROM day_exceptions WHERE user_id = $1 AND date >= $2 AND date < $3`,
       [userId, startDate.toISOString(), endDate.toISOString()]
     );
-    const exceptions = new Set(exceptionsQuery.rows.map(e => e.date.toISOString().slice(0, 10)));
+
+    // Mapeia exceções por data
+    const exceptionsMap = {};
+    for (const e of exceptionsQuery.rows) {
+      const dateIso = e.date.toISOString().slice(0, 10);
+      exceptionsMap[dateIso] = e.type; // 'feriado' ou 'folga'
+    }
 
     // Agrupa pontos por dia
     const dailyMap = {};
@@ -247,11 +253,17 @@ export const getMonthSummary = async (req, res) => {
     // Gera lista de todos os dias do mês
     const allDays = [];
     const current = new Date(startDate);
+    const contractPerDay = 6;
+    let expectedHours = 0;
+    let actualWorked = 0;
+    let folgaDeduzida = 0;
+
     while (current < endDate) {
       const iso = current.toISOString().slice(0, 10);
       const isWeekend = [0, 6].includes(current.getDay());
-      const isException = exceptions.has(iso);
+      const exceptionType = exceptionsMap[iso] || null;
 
+      // Calcula horas trabalhadas no dia
       let totalDay = 0;
       const dailyPoints = dailyMap[iso] || [];
       for (let i = 0; i < dailyPoints.length - 1; i += 2) {
@@ -259,28 +271,38 @@ export const getMonthSummary = async (req, res) => {
         const end = new Date(dailyPoints[i + 1].timestamp);
         totalDay += (end - start) / 1000 / 60 / 60;
       }
+      totalDay = Number(totalDay.toFixed(2));
+      actualWorked += totalDay;
+
+      // Define se conta no esperado e se afeta o banco de horas
+      if (!isWeekend) {
+        if (exceptionType === 'folga') {
+          expectedHours += contractPerDay;
+          folgaDeduzida += contractPerDay;
+        } else if (exceptionType !== 'feriado') {
+          expectedHours += contractPerDay;
+        }
+      }
 
       allDays.push({
         date: iso,
-        hours: Number(totalDay.toFixed(2)),
+        hours: totalDay,
         isWeekend,
-        isException
+        isException: !!exceptionType,
+        exceptionType: exceptionType || null,
       });
 
       current.setDate(current.getDate() + 1);
     }
 
-    // Total esperado
-    const contractPerDay = 6;
-    const expectedHours = allDays.filter(d => !d.isWeekend && !d.isException).length * contractPerDay;
-    const actualWorked = allDays.reduce((acc, d) => acc + (d.hours || 0), 0);
+    const bancoHoras = actualWorked - expectedHours + folgaDeduzida;
 
     res.json({
       year,
       month,
       expectedHours: Number(expectedHours.toFixed(2)),
       actualWorked: Number(actualWorked.toFixed(2)),
-      bancoHoras: Number((actualWorked - expectedHours).toFixed(2)),
+      bancoHoras: Number(bancoHoras.toFixed(2)),
       days: allDays,
     });
   } catch (err) {
