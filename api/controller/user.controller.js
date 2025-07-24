@@ -75,18 +75,23 @@ export const updateUser = async (req, res) => {
   }
 };
 
-// Excluir usuário
 export const deleteUser = async (req, res) => {
-  const userId = parseInt(req.params.id, 10);
-  if (req.user.role !== 'adm') {
-    return res.status(403).json({ message: 'Apenas ADM pode excluir usuários' });
-  }
-
   try {
-    await deleteUserById(userId);
-    res.status(200).json({ message: 'Usuário excluído com sucesso' });
-  } catch (err) {
-   console.error("Erro ao excluir usuário:", err);
-   res.status(400).json({ message: err.message || "Erro desconhecido ao excluir" });
+    const userId = parseInt(req.params.id, 10);
+
+    if (req.user.role !== 'adm') {
+      return res.status(403).json({ message: 'Apenas ADM pode excluir usuários' });
+    }
+
+    const result = await deleteUserById(userId);
+
+    if (!result) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    return res.status(200).json({ message: `Usuário ${result.name} excluído com sucesso` });
+  } catch (error) {
+    console.error("Erro ao excluir usuário:", error);
+    return res.status(400).json({ message: error.message });
   }
 };
