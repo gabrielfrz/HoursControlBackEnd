@@ -86,6 +86,7 @@ export const deleteUser = async (req, res) => {
     await deleteUserById(userId);
     res.status(200).json({ message: 'Usuário excluído com sucesso' });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+   console.error("Erro ao excluir usuário:", err);
+   res.status(400).json({ message: err.message || "Erro desconhecido ao excluir" });
   }
 };
