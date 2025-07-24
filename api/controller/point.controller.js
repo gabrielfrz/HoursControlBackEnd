@@ -219,7 +219,7 @@ export const getMonthSummary = async (req, res) => {
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
 
-    // Pega pontos
+    // Pega pontos do mês
     const pointsQuery = await pool.query(
       `SELECT id, timestamp, type
        FROM points
@@ -229,13 +229,12 @@ export const getMonthSummary = async (req, res) => {
     );
     const points = pointsQuery.rows;
 
-    // Exceções (feriados/folgas)
+    // Pega exceções (feriado ou folga)
     const exceptionsQuery = await pool.query(
-      `SELECT date, type FROM day_exceptions WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      `SELECT date, type FROM day_exceptions
+       WHERE user_id = $1 AND date >= $2 AND date < $3`,
       [userId, startDate.toISOString(), endDate.toISOString()]
     );
-
-    // Mapeia exceções por data
     const exceptionsMap = {};
     for (const e of exceptionsQuery.rows) {
       const dateIso = e.date.toISOString().slice(0, 10);
@@ -250,20 +249,20 @@ export const getMonthSummary = async (req, res) => {
       dailyMap[day].push(point);
     }
 
-    // Gera lista de todos os dias do mês
+    // Inicializações
+    const contractPerDay = 6; // horas por dia
     const allDays = [];
-    const current = new Date(startDate);
-    const contractPerDay = 6;
     let expectedHours = 0;
     let actualWorked = 0;
     let folgaDeduzida = 0;
 
+    // Geração do resumo por dia
+    const current = new Date(startDate);
     while (current < endDate) {
       const iso = current.toISOString().slice(0, 10);
       const isWeekend = [0, 6].includes(current.getDay());
       const exceptionType = exceptionsMap[iso] || null;
 
-      // Calcula horas trabalhadas no dia
       let totalDay = 0;
       const dailyPoints = dailyMap[iso] || [];
       for (let i = 0; i < dailyPoints.length - 1; i += 2) {
@@ -274,7 +273,6 @@ export const getMonthSummary = async (req, res) => {
       totalDay = Number(totalDay.toFixed(2));
       actualWorked += totalDay;
 
-      // Define se conta no esperado e se afeta o banco de horas
       if (!isWeekend) {
         if (exceptionType === 'folga') {
           expectedHours += contractPerDay;
