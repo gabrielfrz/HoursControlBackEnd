@@ -77,17 +77,15 @@ export const updateUser = async (req, res) => {
 
 // Excluir usuário
 export const deleteUser = async (req, res) => {
-  try {
-    if (req.user.role !== "adm") {
-      return res
-        .status(403)
-        .json({ message: "Acesso negado: apenas ADM pode excluir" });
-    }
+  const userId = req.params.id;
+  if (req.user.role !== 'adm') {
+    return res.status(403).json({ message: 'Apenas ADM pode excluir usuários' });
+  }
 
-    const { id } = req.params;
-    await deleteUserById(id);
-    res.sendStatus(204);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+  try {
+    await deleteUserById(userId);
+    res.status(200).json({ message: 'Usuário excluído com sucesso' });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
