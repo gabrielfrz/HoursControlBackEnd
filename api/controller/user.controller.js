@@ -80,12 +80,15 @@ export const deleteUser = async (req, res) => {
     const rawId = req.params.id;
     const userId = Number(rawId);
 
-    if (isNaN(userId)) {
-      return res.status(400).json({ message: "ID inválido para exclusão" });
+    console.log("Tentando deletar ID:", rawId, "Convertido:", userId);
+    console.log("Usuário autenticado:", req.user);
+
+    if (!req.user || req.user.role !== "adm") {
+      return res.status(403).json({ message: "Apenas ADM pode excluir usuários" });
     }
 
-    if (req.user.role !== "adm") {
-      return res.status(403).json({ message: "Apenas ADM pode excluir usuários" });
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "ID inválido para exclusão" });
     }
 
     const result = await deleteUserById(userId);
@@ -97,7 +100,7 @@ export const deleteUser = async (req, res) => {
     return res.status(200).json({ message: `Usuário ${result.name} excluído com sucesso` });
   } catch (error) {
     console.error("Erro ao excluir usuário:", error);
-    return res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message || "Erro inesperado" });
   }
 };
 

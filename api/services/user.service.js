@@ -114,13 +114,18 @@ export const updateUserData = async (id, data) => {
   return result.rows[0];
 };
 
-// Excluir usuário
 export const deleteUserById = async (id) => {
-  const result = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [id]);
-  
-  if (result.rowCount === 0) {
+  // Verifica se o usuário existe
+  const userCheck = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+  if (userCheck.rows.length === 0) {
     throw new Error("Usuário não encontrado para exclusão");
   }
+
+  // Exclui todos os pontos associados
+  await pool.query("DELETE FROM points WHERE user_id = $1", [id]);
+
+  // Exclui o usuário
+  const result = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [id]);
 
   return result.rows[0]; 
 };
