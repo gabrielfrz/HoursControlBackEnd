@@ -77,7 +77,7 @@ export const updateUser = async (req, res) => {
 
 // Excluir usuário
 export const deleteUser = async (req, res) => {
-  const userId = req.params.id;
+  const userId = parseInt(req.params.id, 10);
   if (req.user.role !== 'adm') {
     return res.status(403).json({ message: 'Apenas ADM pode excluir usuários' });
   }
