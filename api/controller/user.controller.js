@@ -7,6 +7,8 @@ import {
 } from "../services/user.service.js";
 
 import { pool } from '../database/db.js';
+import bcrypt from 'bcrypt';
+
 
 
 // Registrar novo usuário
