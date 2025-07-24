@@ -3,14 +3,13 @@ import {
   createAutoPoint,
   getDaySummary,
   deleteAllPointsFromUserForDay,
-  deleteSinglePointFromUser
+  deleteSinglePointFromUser,
+  editOwnPoint,
+  getMonthSummary,
+  setException 
 } from "../controller/point.controller.js";
+
 import { authenticateToken } from "../middleware/auth.middleware.js";
-import { editOwnPoint } from "../controller/point.controller.js";
-import { getMonthSummary } from '../controller/point.controller.js';
-
-
-
 
 const router = express.Router();
 
@@ -19,9 +18,7 @@ router.get("/summary/:date?", authenticateToken, getDaySummary);
 router.delete("/delete-day/:date", authenticateToken, deleteAllPointsFromUserForDay);
 router.delete("/delete/:pointId", authenticateToken, deleteSinglePointFromUser);
 router.put("/edit/:pointId", authenticateToken, editOwnPoint);
-router.get('/month-summary/:year/:month', authenticateToken, getMonthSummary);
-
-
-
+router.get("/month-summary/:year/:month", authenticateToken, getMonthSummary);
+router.post("/set-exception", authenticateToken, setException);
 
 export default router;

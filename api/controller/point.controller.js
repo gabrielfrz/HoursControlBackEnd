@@ -308,3 +308,43 @@ export const getMonthSummary = async (req, res) => {
     res.status(500).json({ message: 'Erro ao calcular resumo mensal.' });
   }
 };
+
+export const setException = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { date, type } = req.body;
+
+    if (!date || !['feriado', 'folga', ''].includes(type)) {
+      return res.status(400).json({ message: 'Dados inválidos.' });
+    }
+
+    const existing = await pool.query(
+      'SELECT * FROM day_exceptions WHERE user_id = $1 AND date = $2',
+      [userId, date]
+    );
+
+    if (type === '') {
+      // Remover exceção existente, se houver
+      if (existing.rowCount > 0) {
+        await pool.query('DELETE FROM day_exceptions WHERE user_id = $1 AND date = $2', [userId, date]);
+      }
+    } else {
+      if (existing.rowCount > 0) {
+        await pool.query(
+          'UPDATE day_exceptions SET type = $1 WHERE user_id = $2 AND date = $3',
+          [type, userId, date]
+        );
+      } else {
+        await pool.query(
+          'INSERT INTO day_exceptions (user_id, date, type) VALUES ($1, $2, $3)',
+          [userId, date, type]
+        );
+      }
+    }
+
+    res.status(200).json({ message: 'Exceção atualizada.' });
+  } catch (err) {
+    console.error('Erro ao atualizar exceção:', err);
+    res.status(500).json({ message: 'Erro ao atualizar exceção.' });
+  }
+};
