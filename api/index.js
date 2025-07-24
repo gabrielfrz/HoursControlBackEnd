@@ -8,7 +8,6 @@ import cors from "cors";
 import userRoutes from "./routes/user.routes.js";
 import pointRoutes from "./routes/point.routes.js";
 
-
 const app = express();
 
 const allowedOrigins = [
@@ -22,20 +21,21 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log("CORS bloqueado para origem:", origin);
       callback(new Error("Origem não permitida pelo CORS"));
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.use("/api", userRoutes);
 app.use("/api/points", pointRoutes);
-
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Backend está online" });
