@@ -348,3 +348,100 @@ export const setException = async (req, res) => {
     res.status(500).json({ message: 'Erro ao atualizar exceção.' });
   }
 };
+
+export const getMonthSummaryByAdmin = async (req, res) => {
+  try {
+    if (req.user.role !== "adm") {
+      return res.status(403).json({ message: "Apenas administradores têm acesso." });
+    }
+
+    const { userId, year, month } = req.params;
+
+    const startDate = new Date(`${year}-${month}-01`);
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const pointsQuery = await pool.query(
+      `SELECT id, timestamp, type FROM points
+       WHERE user_id = $1 AND timestamp >= $2 AND timestamp < $3
+       ORDER BY timestamp ASC`,
+      [userId, startDate.toISOString(), endDate.toISOString()]
+    );
+    const points = pointsQuery.rows;
+
+    const exceptionsQuery = await pool.query(
+      `SELECT date, type FROM day_exceptions
+       WHERE user_id = $1 AND date >= $2 AND date < $3`,
+      [userId, startDate.toISOString(), endDate.toISOString()]
+    );
+    const exceptionsMap = {};
+    for (const e of exceptionsQuery.rows) {
+      const dateIso = e.date.toISOString().slice(0, 10);
+      exceptionsMap[dateIso] = e.type;
+    }
+
+    const dailyMap = {};
+    for (const point of points) {
+      const day = new Date(point.timestamp).toISOString().slice(0, 10);
+      if (!dailyMap[day]) dailyMap[day] = [];
+      dailyMap[day].push(point);
+    }
+
+    const contractPerDay = 6;
+    const allDays = [];
+    let expectedHours = 0;
+    let actualWorked = 0;
+    let folgaDeduzida = 0;
+
+    const current = new Date(startDate);
+    while (current < endDate) {
+      const iso = current.toISOString().slice(0, 10);
+      const isWeekend = [0, 6].includes(current.getDay());
+      const exceptionType = exceptionsMap[iso] || null;
+
+      let totalDay = 0;
+      const dailyPoints = dailyMap[iso] || [];
+      for (let i = 0; i < dailyPoints.length - 1; i += 2) {
+        const start = new Date(dailyPoints[i].timestamp);
+        const end = new Date(dailyPoints[i + 1].timestamp);
+        totalDay += (end - start) / 1000 / 60 / 60;
+      }
+
+      totalDay = Number(totalDay.toFixed(2));
+      actualWorked += totalDay;
+
+      if (!isWeekend) {
+        if (exceptionType === 'folga') {
+          expectedHours += contractPerDay;
+          folgaDeduzida += contractPerDay;
+        } else if (exceptionType !== 'feriado') {
+          expectedHours += contractPerDay;
+        }
+      }
+
+      allDays.push({
+        date: iso,
+        hours: totalDay,
+        isWeekend,
+        isException: !!exceptionType,
+        exceptionType: exceptionType || null,
+      });
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    const bancoHoras = actualWorked - expectedHours + folgaDeduzida;
+
+    res.json({
+      year,
+      month,
+      expectedHours: Number(expectedHours.toFixed(2)),
+      actualWorked: Number(actualWorked.toFixed(2)),
+      bancoHoras: Number(bancoHoras.toFixed(2)),
+      days: allDays,
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao calcular resumo mensal (admin).' });
+  }
+};
