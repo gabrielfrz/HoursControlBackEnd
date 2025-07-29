@@ -38,7 +38,7 @@ export const createAutoPoint = async (req, res) => {
     const { point, nextType } = await registerNextPoint(req.userId, customDate);
     res.status(201).json({
       point,
-      message: `Ponto ${point.type} registrado. Próximo: ${nextType || 'nenhum'}`,
+      message: `Ponto ${point.type} registrado com sucesso.`
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
