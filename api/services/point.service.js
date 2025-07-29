@@ -60,6 +60,7 @@ export const getUserTodayPoints = async (userId) => {
   return result.rows;
 };
 
+
 export const registerNextPoint = async (userId, customDate = null) => {
   const now = new Date();
   const dateToUse = customDate
@@ -75,19 +76,9 @@ export const registerNextPoint = async (userId, customDate = null) => {
 
   const points = resultPoints.rows;
 
-  let nextType;
-  switch (points.length) {
-    case 0:
-      nextType = "entrada"; break;
-    case 1:
-      nextType = "saida_1"; break;
-    case 2:
-      nextType = "retorno"; break;
-    case 3:
-      nextType = "saida_final"; break;
-    default:
-      throw new Error("Todos os pontos já foram registrados nesse dia.");
-  }
+  // Tipos definidos até 4 batidas, depois dinâmicos
+  const tipoBase = ["entrada", "saida_1", "retorno", "saida_final"];
+  const nextType = tipoBase[points.length] || `ponto_${points.length + 1}`;
 
   const timestamp = dateToUse.toISOString();
   const result = await pool.query(
@@ -95,5 +86,7 @@ export const registerNextPoint = async (userId, customDate = null) => {
     [userId, nextType, timestamp]
   );
 
-  return { point: result.rows[0], nextType };
+  const upcomingType = tipoBase[points.length + 1] || `ponto_${points.length + 2}` || null;
+
+  return { point: result.rows[0], nextType: upcomingType };
 };
